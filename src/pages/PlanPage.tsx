@@ -10,6 +10,7 @@ const handleDeleteTask = async (taskId: string) => {
   }
 };
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TaskForm from "./TaskForm";
 import ChecklistEditor from "./ChecklistEditor";
 import { ChecklistItem, Task, ChecklistStatus } from "../types";
@@ -18,10 +19,19 @@ import { useUserStore } from "../store";
 
 const PlanPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const user = useUserStore((s) => s.user) || "demo";
+  const user = useUserStore((s) => s.user);
+  const navigate = useNavigate();
+
+  // Redirect to login if no user is set
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+  }, [user, navigate]);
 
   // Load tasks from RxDB on mount and subscribe to changes
   useEffect(() => {
+    if (!user) return;
     let sub: any;
     let mounted = true;
     getDb().then((db) => {

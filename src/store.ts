@@ -5,10 +5,17 @@ interface UserState {
   login: (name: string) => Promise<void>;
 }
 
+const getInitialUser = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("user") || null;
+  }
+  return null;
+};
+
 export const useUserStore = create<UserState>((set) => ({
-  user: null,
+  user: getInitialUser(),
   login: async (name: string) => {
-    // TODO: RxDB user creation/selection logic
+    localStorage.setItem("user", name);
     set({ user: name });
   },
 }));
