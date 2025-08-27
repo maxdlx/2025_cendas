@@ -1,10 +1,6 @@
 import { createRxDatabase, RxDatabase, RxCollection, RxJsonSchema } from "rxdb";
-import { RxDBDevModePlugin } from "rxdb/plugins/dev-mode";
-import { addRxPlugin } from "rxdb/plugins/core";
 import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
 import { Task } from "./types";
-
-addRxPlugin(RxDBDevModePlugin);
 
 export interface TaskDocType extends Task {}
 

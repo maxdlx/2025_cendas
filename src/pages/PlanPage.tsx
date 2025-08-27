@@ -1,3 +1,12 @@
+import React from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import TaskForm from "./TaskForm";
+import ChecklistEditor from "./ChecklistEditor";
+import { ChecklistItem, Task, ChecklistStatus } from "../types";
+import { getDb, TaskDocType } from "../db";
+import { useUserStore } from "../store";
+
 // Delete a task from RxDB
 const handleDeleteTask = async (taskId: string) => {
   const db = await getDb();
@@ -9,13 +18,6 @@ const handleDeleteTask = async (taskId: string) => {
     await doc.remove();
   }
 };
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import TaskForm from "./TaskForm";
-import ChecklistEditor from "./ChecklistEditor";
-import { ChecklistItem, Task, ChecklistStatus } from "../types";
-import { getDb, TaskDocType } from "../db";
-import { useUserStore } from "../store";
 
 const PlanPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -140,7 +142,7 @@ const PlanPage: React.FC = () => {
           />
           {/* Render task markers */}
           {tasks.map((task) => (
-            <>
+            <React.Fragment key={task.id}>
               <button
                 key={task.id}
                 className="absolute z-10 bg-blue-600 text-white rounded-full px-2 py-1 text-xs shadow border border-white hover:bg-blue-800"
@@ -157,7 +159,7 @@ const PlanPage: React.FC = () => {
                   setPopoverTaskId(task.id === popoverTaskId ? null : task.id);
                 }}
               >
-                {task.title[0]}
+                {task.title.substring(0, 2).toUpperCase()}
               </button>
               {popoverTaskId === task.id && (
                 <div
@@ -210,7 +212,7 @@ const PlanPage: React.FC = () => {
                   </div>
                 </div>
               )}
-            </>
+            </React.Fragment>
           ))}
           {/* Close popover when clicking outside */}
           {popoverTaskId && (
