@@ -1,30 +1,45 @@
 import React, { useState } from "react";
-import { DEFAULT_CHECKLIST, ChecklistItem } from "../types";
+import { DEFAULT_CHECKLIST, ChecklistItem, ChecklistStatus } from "../types";
+import ChecklistEditor from "./ChecklistEditor";
 
 interface TaskFormProps {
   onCreate: (title: string, checklist: ChecklistItem[]) => void;
+  initialTitle?: string;
+  initialChecklist?: ChecklistItem[];
 }
 
-const TaskForm: React.FC<TaskFormProps> = ({ onCreate }) => {
-  const [title, setTitle] = useState("");
-  const [checklist, setChecklist] =
-    useState<ChecklistItem[]>(DEFAULT_CHECKLIST);
+const TaskForm: React.FC<TaskFormProps> = ({
+  onCreate,
+  initialTitle = "",
+  initialChecklist,
+}) => {
+  const [title, setTitle] = useState(initialTitle);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(
+    initialChecklist ?? DEFAULT_CHECKLIST
+  );
 
   const handleAddChecklistItem = () => {
     setChecklist([
       ...checklist,
-      { id: Date.now().toString(), text: "", status: "not_started" },
+      {
+        id:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : Date.now().toString(),
+        text: "",
+        status: "not_started",
+      },
     ]);
   };
 
-  const handleChecklistTextChange = (idx: number, text: string) => {
+  const handleChecklistTextChange = (itemId: string, text: string) => {
     setChecklist((prev) =>
-      prev.map((item, i) => (i === idx ? { ...item, text } : item))
+      prev.map((item) => (item.id === itemId ? { ...item, text } : item))
     );
   };
 
-  const handleRemoveChecklistItem = (idx: number) => {
-    setChecklist((prev) => prev.filter((_, i) => i !== idx));
+  const handleRemoveChecklistItem = (itemId: string) => {
+    setChecklist((prev) => prev.filter((item) => item.id !== itemId));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -45,24 +60,21 @@ const TaskForm: React.FC<TaskFormProps> = ({ onCreate }) => {
       />
       <div className="mb-2">
         <div className="font-semibold mb-1">Checklist</div>
-        {checklist.map((item, idx) => (
-          <div key={item.id} className="flex items-center mb-1">
-            <input
-              className="border p-1 rounded flex-1 mr-2"
-              placeholder="Checklist item"
-              value={item.text}
-              onChange={(e) => handleChecklistTextChange(idx, e.target.value)}
-            />
-            <button
-              type="button"
-              className="text-red-500 px-2"
-              onClick={() => handleRemoveChecklistItem(idx)}
-              disabled={checklist.length <= 1}
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+        <ChecklistEditor
+          checklist={checklist}
+          onStatusChange={(itemId, status) =>
+            setChecklist((prev) =>
+              prev.map((item) =>
+                item.id === itemId
+                  ? { ...item, status: status as ChecklistStatus }
+                  : item
+              )
+            )
+          }
+          onTextChange={handleChecklistTextChange}
+          onRemoveItem={handleRemoveChecklistItem}
+          editable
+        />
         <button
           type="button"
           className="text-blue-500 mt-1"
@@ -75,7 +87,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onCreate }) => {
         type="submit"
         className="bg-blue-600 text-white px-4 py-2 rounded w-full"
       >
-        Create Task
+        {initialTitle ? "Update Task" : "Create Task"}
       </button>
     </form>
   );

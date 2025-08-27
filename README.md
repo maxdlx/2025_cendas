@@ -31,6 +31,10 @@ Place your floor plan image in `public/image.png`.
 
 ---
 
-## License
+## Todos (open tasks due to limited time)
 
-MIT
+Functionality:
+
+- do not use an image and position absolute for the tasks, instead canvas elements stacked on each other
+- layout of course, it's just a demo
+- PWA mobile-friendlyness, this version was only tested on Desktop

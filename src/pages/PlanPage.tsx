@@ -39,21 +39,51 @@ const PlanPage: React.FC = () => {
     };
   }, [user]);
 
-  // Add new task to RxDB
+  // Track where the user last clicked on the plan
+  const [pendingXY, setPendingXY] = useState<{ x: number; y: number } | null>(
+    null
+  );
+
+  // Popover state for marker details
+  const [popoverTaskId, setPopoverTaskId] = useState<string | null>(null);
+
+  // Edit state
+  const [editTask, setEditTask] = useState<Task | null>(null);
+
+  // Add or update task in RxDB
   const handleCreateTask = async (
     title: string,
     checklist: ChecklistItem[]
   ) => {
     const db = await getDb();
     const tasksCollection = db.tasks as any;
-    await tasksCollection.insert({
-      id: Date.now().toString(),
-      title,
-      checklist,
-      x: 0.5,
-      y: 0.5,
-      userId: user,
-    });
+    if (editTask) {
+      // Update existing
+      const doc = await tasksCollection
+        .findOne({ selector: { id: editTask.id } })
+        .exec();
+      if (doc) {
+        await doc.patch({ title, checklist });
+      }
+      setEditTask(null);
+      setPopoverTaskId(null);
+    } else {
+      // Create new
+      const x = pendingXY?.x ?? 0.5;
+      const y = pendingXY?.y ?? 0.5;
+      await tasksCollection.insert({
+        id:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : Date.now().toString(),
+        title,
+        checklist,
+        x,
+        y,
+        userId: user,
+      });
+      setPendingXY(null); // reset after placing
+    }
   };
 
   // Update checklist item status in RxDB
@@ -81,15 +111,161 @@ const PlanPage: React.FC = () => {
         Construction Tasks
       </header>
       <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <img
-          src="/image.png"
-          alt="Floor Plan"
-          className="max-w-full h-auto border rounded shadow mb-4"
-        />
-        {/* Task creation form */}
-        <div className="w-full max-w-xl bg-white rounded shadow p-4 mb-4">
-          <TaskForm onCreate={handleCreateTask} />
+        <div
+          className="relative mb-4 cursor-crosshair"
+          style={{ width: 600, height: 400 }}
+          onClick={(e) => {
+            const rect = (e.target as HTMLDivElement).getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+            setPendingXY({ x, y });
+          }}
+        >
+          <img
+            src="/image.png"
+            alt="Floor Plan"
+            className="w-full h-full object-contain border rounded shadow"
+            style={{ width: 600, height: 400 }}
+            draggable={false}
+          />
+          {/* Render task markers */}
+          {tasks.map((task) => (
+            <>
+              <button
+                key={task.id}
+                className="absolute z-10 bg-blue-600 text-white rounded-full px-2 py-1 text-xs shadow border border-white hover:bg-blue-800"
+                style={{
+                  left: `${Math.round((task.x ?? 0.5) * 100)}%`,
+                  top: `${Math.round((task.y ?? 0.5) * 100)}%`,
+                  transform: "translate(-50%, -50%)",
+                  minWidth: 24,
+                  minHeight: 24,
+                }}
+                title={task.title}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPopoverTaskId(task.id === popoverTaskId ? null : task.id);
+                }}
+              >
+                {task.title[0]}
+              </button>
+              {popoverTaskId === task.id && (
+                <div
+                  className="absolute z-20 bg-white border rounded shadow-lg p-3 text-xs min-w-[180px] max-w-[220px]"
+                  style={{
+                    left: `${Math.round((task.x ?? 0.5) * 100)}%`,
+                    top: `${Math.round((task.y ?? 0.5) * 100)}%`,
+                    transform: "translate(-50%, -110%)",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="font-bold text-sm mb-1">{task.title}</div>
+                  <div className="mb-1">Checklist:</div>
+                  <ul className="mb-1">
+                    {task.checklist.map((item) => (
+                      <li key={item.id} className="flex items-center">
+                        <span className="mr-1">•</span>
+                        <span>{item.text}</span>
+                        <span className="ml-2 text-gray-400">
+                          [{item.status}]
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      className="text-blue-600 hover:underline text-xs"
+                      onClick={() => {
+                        setEditTask(task);
+                        setPopoverTaskId(null);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="text-red-500 hover:underline text-xs"
+                      onClick={async () => {
+                        await handleDeleteTask(task.id);
+                        setPopoverTaskId(null);
+                      }}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      className="text-gray-500 hover:underline text-xs"
+                      onClick={() => setPopoverTaskId(null)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ))}
+          {/* Close popover when clicking outside */}
+          {popoverTaskId && (
+            <div
+              className="fixed inset-0 z-10"
+              style={{ cursor: "default" }}
+              onClick={() => setPopoverTaskId(null)}
+            />
+          )}
+          {/* Show marker and popover for new task placement */}
+          {pendingXY && (
+            <>
+              <div
+                className="absolute z-20 bg-green-500 opacity-70 rounded-full border-2 border-white pointer-events-none"
+                style={{
+                  left: `${Math.round(pendingXY.x * 100)}%`,
+                  top: `${Math.round(pendingXY.y * 100)}%`,
+                  transform: "translate(-50%, -50%)",
+                  width: 24,
+                  height: 24,
+                }}
+              />
+              <div
+                className="absolute z-30 bg-white border rounded shadow-lg p-3 text-xs min-w-[180px] max-w-[220px]"
+                style={{
+                  left: `${Math.round(pendingXY.x * 100)}%`,
+                  top: `${Math.round(pendingXY.y * 100)}%`,
+                  transform: "translate(-50%, -110%)",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="font-bold text-sm mb-1">Neue Aufgabe</div>
+                <TaskForm onCreate={handleCreateTask} />
+                <button
+                  className="mt-2 text-xs text-gray-500 hover:underline"
+                  onClick={() => setPendingXY(null)}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </>
+          )}
         </div>
+        {/* Only show edit form below if not placing a new task */}
+        {!pendingXY && (
+          <div className="w-full max-w-xl bg-white rounded shadow p-4 mb-4">
+            <TaskForm
+              onCreate={handleCreateTask}
+              {...(editTask
+                ? {
+                    initialTitle: editTask.title,
+                    initialChecklist: editTask.checklist,
+                  }
+                : {})}
+            />
+            {editTask && (
+              <button
+                className="mt-2 text-xs text-gray-500 hover:underline"
+                onClick={() => setEditTask(null)}
+              >
+                Cancel edit
+              </button>
+            )}
+          </div>
+        )}
         {/* Task board/list */}
         <div className="w-full max-w-xl bg-white rounded shadow p-4">
           <h2 className="text-lg font-bold mb-2">Tasks</h2>
