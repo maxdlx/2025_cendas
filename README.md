@@ -4,7 +4,7 @@ Minimal offline-first React app for creating construction tasks on a floor plan.
 
 ## Features
 
-- Login-light (username only, per-user data separation)
+- Login-light (username only, per-user data separation) ~ 1 hour
 - Plan view with floor plan image
 - Add tasks (shown on plan and in list)
 - Offline-first: all data local (IndexedDB)
