@@ -66,6 +66,9 @@ const PlanPage: React.FC = () => {
   // Edit state
   const [editTask, setEditTask] = useState<Task | null>(null);
 
+  // Delete confirmation state
+  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
+
   // Add or update task in RxDB
   const handleCreateTask = async (
     title: string,
@@ -209,10 +212,7 @@ const PlanPage: React.FC = () => {
                     </button>
                     <button
                       className="text-red-500 hover:underline text-xs"
-                      onClick={async () => {
-                        await handleDeleteTask(task.id);
-                        setPopoverTaskId(null);
-                      }}
+                      onClick={() => setDeleteTaskId(task.id)}
                     >
                       Delete
                     </button>
@@ -258,13 +258,13 @@ const PlanPage: React.FC = () => {
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="font-bold text-sm mb-1">Neue Aufgabe</div>
+                <div className="font-bold text-sm mb-1">New Task</div>
                 <TaskForm onCreate={handleCreateTask} />
                 <button
                   className="mt-2 text-xs text-gray-500 hover:underline"
                   onClick={() => setPendingXY(null)}
                 >
-                  Abbrechen
+                  Cancel
                 </button>
               </div>
             </>
@@ -315,7 +315,7 @@ const PlanPage: React.FC = () => {
                           </button>
                           <button
                             className="text-red-500 text-xs px-2 py-1 rounded hover:bg-red-100"
-                            onClick={() => handleDeleteTask(task.id)}
+                            onClick={() => setDeleteTaskId(task.id)}
                           >
                             Delete
                           </button>
@@ -334,6 +334,37 @@ const PlanPage: React.FC = () => {
             </ul>
           )}
         </div>
+        {/* Delete confirmation dialog */}
+        {deleteTaskId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="bg-white rounded shadow-lg p-6 min-w-[260px] max-w-[90vw] text-center">
+              <div className="font-bold mb-2">Delete Task?</div>
+              <div className="mb-4 text-sm text-gray-700">
+                Are you sure you want to delete this task? This cannot be
+                undone.
+              </div>
+              <div className="flex justify-center gap-4">
+                <button
+                  className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700"
+                  onClick={async () => {
+                    await handleDeleteTask(deleteTaskId);
+                    setDeleteTaskId(null);
+                    setPopoverTaskId((id) => (id === deleteTaskId ? null : id));
+                    setEditTask((t) => (t && t.id === deleteTaskId ? null : t));
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  className="bg-gray-200 text-gray-800 px-4 py-1 rounded hover:bg-gray-300"
+                  onClick={() => setDeleteTaskId(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
