@@ -21,8 +21,12 @@ export interface Task {
 }
 
 export const DEFAULT_CHECKLIST: ChecklistItem[] = [
-  { id: "1", text: "Vorbereitung", status: "not_started" },
-  { id: "2", text: "Material prüfen", status: "not_started" },
-  { id: "3", text: "Ausführung", status: "not_started" },
-  { id: "4", text: "Abschlusskontrolle", status: "not_started" },
+  { id: "1", text: "Vorbereitung / Preparation", status: "not_started" },
+  { id: "2", text: "Material prüfen / Check materials", status: "not_started" },
+  { id: "3", text: "Ausführung / Execution", status: "not_started" },
+  {
+    id: "4",
+    text: "Abschlusskontrolle / Final inspection",
+    status: "not_started",
+  },
 ];

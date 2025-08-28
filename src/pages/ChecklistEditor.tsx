@@ -15,6 +15,7 @@ interface ChecklistEditorProps {
   onTextChange?: (itemId: string, text: string) => void;
   onRemoveItem?: (itemId: string) => void;
   editable?: boolean;
+  hideStatus?: boolean;
 }
 
 const ChecklistEditor: React.FC<ChecklistEditorProps> = ({
@@ -23,6 +24,7 @@ const ChecklistEditor: React.FC<ChecklistEditorProps> = ({
   onTextChange,
   onRemoveItem,
   editable = false,
+  hideStatus = false,
 }) => (
   <ul className="ml-4 mt-1">
     {checklist.map((item) => (
@@ -39,19 +41,21 @@ const ChecklistEditor: React.FC<ChecklistEditorProps> = ({
         ) : (
           <span className="flex-1">{item.text}</span>
         )}
-        <select
-          className="ml-2 border rounded px-1 py-0.5 text-xs"
-          value={item.status}
-          onChange={(e) =>
-            onStatusChange(item.id, e.target.value as ChecklistStatus)
-          }
-        >
-          {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+        {!hideStatus && (
+          <select
+            className="ml-2 border rounded px-1 py-0.5 text-xs"
+            value={item.status}
+            onChange={(e) =>
+              onStatusChange(item.id, e.target.value as ChecklistStatus)
+            }
+          >
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        )}
         {editable && onRemoveItem && (
           <button
             type="button"

@@ -101,6 +101,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
           onTextChange={handleChecklistTextChange}
           onRemoveItem={handleRemoveChecklistItem}
           editable
+          hideStatus={true}
         />
         <button
           type="button"

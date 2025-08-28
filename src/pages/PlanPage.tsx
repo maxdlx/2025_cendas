@@ -6,11 +6,12 @@ import ChecklistEditor from "./ChecklistEditor";
 import { ChecklistItem, Task, ChecklistStatus } from "../types";
 import { getDb, TaskDocType } from "../db";
 import { useUserStore } from "../store";
+import { Subscription } from "rxjs";
 
 // Delete a task from RxDB
 const handleDeleteTask = async (taskId: string) => {
   const db = await getDb();
-  const tasksCollection = db.tasks as any;
+  const tasksCollection = db.tasks;
   const doc = await tasksCollection
     .findOne({ selector: { id: taskId } })
     .exec();
@@ -35,20 +36,24 @@ const PlanPage: React.FC = () => {
   // Load tasks from RxDB on mount and subscribe to changes
   useEffect(() => {
     if (!user) return;
-    let sub: any;
+    let sub: Subscription;
     let mounted = true;
     getDb().then((db) => {
-      const tasksCollection = db.tasks as any;
+      const tasksCollection = db.tasks;
       // Only show tasks for current user
       sub = tasksCollection
         .find({ selector: { userId: user } })
         .$.subscribe((docs: TaskDocType[]) => {
-          if (mounted) setTasks(docs.map((d: any) => d._data));
+          if (mounted) {
+            setTasks(docs);
+          }
         });
     });
     return () => {
       mounted = false;
-      if (sub) sub.unsubscribe();
+      if (sub) {
+        sub.unsubscribe();
+      }
     };
   }, [user]);
 
@@ -75,7 +80,7 @@ const PlanPage: React.FC = () => {
     checklist: ChecklistItem[]
   ) => {
     const db = await getDb();
-    const tasksCollection = db.tasks as any;
+    const tasksCollection = db.tasks;
     if (editTask) {
       // Update existing
       const doc = await tasksCollection
@@ -112,7 +117,7 @@ const PlanPage: React.FC = () => {
     status: ChecklistStatus
   ) => {
     const db = await getDb();
-    const tasksCollection = db.tasks as any;
+    const tasksCollection = db.tasks;
     const doc = await tasksCollection
       .findOne({ selector: { id: taskId } })
       .exec();
@@ -173,13 +178,14 @@ const PlanPage: React.FC = () => {
                 onClick={(e) => {
                   e.stopPropagation();
                   setPopoverTaskId(task.id === popoverTaskId ? null : task.id);
+                  setPendingXY(null);
                 }}
               >
-                {task.title.substring(0, 2).toUpperCase()}
+                {task.title.substring(0, 3).toUpperCase()}
               </button>
-              {popoverTaskId === task.id && (
+              {popoverTaskId === task.id && !pendingXY && (
                 <div
-                  className="absolute z-20 bg-white border rounded shadow-lg p-3 text-xs min-w-[180px] max-w-[220px]"
+                  className="absolute z-20 bg-white border rounded shadow-lg p-3 text-xs min-w-[320px] max-w-[540px]"
                   style={{
                     left: `${Math.round((task.x ?? 0.5) * 100)}%`,
                     top: `${Math.round((task.y ?? 0.5) * 100)}%`,
@@ -193,7 +199,7 @@ const PlanPage: React.FC = () => {
                     {task.checklist.map((item) => (
                       <li key={item.id} className="flex items-center">
                         <span className="mr-1">•</span>
-                        <span>{item.text}</span>
+                        <span className="whitespace-nowrap">{item.text}</span>
                         <span className="ml-2 text-gray-400">
                           [{item.status}]
                         </span>
@@ -227,8 +233,7 @@ const PlanPage: React.FC = () => {
               )}
             </React.Fragment>
           ))}
-          {/* Close popover when clicking outside */}
-          {popoverTaskId && (
+          {popoverTaskId && !editTask && (
             <div
               className="fixed inset-0 z-10"
               style={{ cursor: "default" }}
@@ -270,26 +275,20 @@ const PlanPage: React.FC = () => {
             </>
           )}
         </div>
-        {/* Only show edit form below if not placing a new task */}
-        {!pendingXY && (
+        {/* Only show edit form below if not placing a new task, and only show new task form when a position is clicked */}
+        {!pendingXY && editTask && (
           <div className="w-full max-w-xl bg-white rounded shadow p-4 mb-4">
             <TaskForm
               onCreate={handleCreateTask}
-              {...(editTask
-                ? {
-                    initialTitle: editTask.title,
-                    initialChecklist: editTask.checklist,
-                  }
-                : {})}
+              initialTitle={editTask.title}
+              initialChecklist={editTask.checklist}
             />
-            {editTask && (
-              <button
-                className="mt-2 text-xs text-gray-500 hover:underline"
-                onClick={() => setEditTask(null)}
-              >
-                Cancel edit
-              </button>
-            )}
+            <button
+              className="mt-2 text-xs text-gray-500 hover:underline"
+              onClick={() => setEditTask(null)}
+            >
+              Cancel edit
+            </button>
           </div>
         )}
         {/* Task board/list */}
