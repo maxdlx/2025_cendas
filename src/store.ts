@@ -3,6 +3,7 @@ import { create } from "zustand";
 interface UserState {
   user: string | null;
   login: (name: string) => Promise<void>;
+  logout: () => void;
 }
 
 const getInitialUser = () => {
@@ -17,5 +18,9 @@ export const useUserStore = create<UserState>((set) => ({
   login: async (name: string) => {
     localStorage.setItem("user", name);
     set({ user: name });
+  },
+  logout: () => {
+    localStorage.removeItem("user");
+    set({ user: null });
   },
 }));

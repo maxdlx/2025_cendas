@@ -17,6 +17,20 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const [checklist, setChecklist] = useState<ChecklistItem[]>(
     initialChecklist ?? DEFAULT_CHECKLIST
   );
+  const [error, setError] = useState<string | null>(null);
+
+  // Ref for the title input
+  const titleInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Reset form state when editing a different task
+  React.useEffect(() => {
+    setTitle(initialTitle);
+    setChecklist(initialChecklist ?? DEFAULT_CHECKLIST);
+    // Focus the title input when editing/creating
+    if (titleInputRef.current) {
+      titleInputRef.current.focus();
+    }
+  }, [initialTitle, initialChecklist]);
 
   const handleAddChecklistItem = () => {
     setChecklist([
@@ -44,7 +58,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      setError("Task title is required.");
+      return;
+    }
+    setError(null);
     onCreate(title.trim(), checklist);
     setTitle("");
     setChecklist(DEFAULT_CHECKLIST);
@@ -53,11 +71,20 @@ const TaskForm: React.FC<TaskFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="mb-4">
       <input
+        ref={titleInputRef}
         className="border p-2 rounded w-full mb-2"
         placeholder="Task title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
+        required
+        aria-invalid={!!error}
+        aria-describedby={error ? "task-title-error" : undefined}
       />
+      {error && (
+        <div id="task-title-error" className="text-red-600 text-xs mb-2">
+          {error}
+        </div>
+      )}
       <div className="mb-2">
         <div className="font-semibold mb-1">Checklist</div>
         <ChecklistEditor

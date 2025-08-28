@@ -22,6 +22,7 @@ const handleDeleteTask = async (taskId: string) => {
 const PlanPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const user = useUserStore((s) => s.user);
+  const logout = useUserStore((s) => s.logout);
   const navigate = useNavigate();
 
   // Redirect to login if no user is set
@@ -51,10 +52,13 @@ const PlanPage: React.FC = () => {
     };
   }, [user]);
 
-  // Track where the user last clicked on the plan
-  const [pendingXY, setPendingXY] = useState<{ x: number; y: number } | null>(
-    null
-  );
+  // Track where the user last clicked on the plan (plan-relative and screen coordinates)
+  const [pendingXY, setPendingXY] = useState<{
+    x: number;
+    y: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
 
   // Popover state for marker details
   const [popoverTaskId, setPopoverTaskId] = useState<string | null>(null);
@@ -119,8 +123,17 @@ const PlanPage: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="bg-blue-600 text-white p-4 text-xl font-bold">
-        Construction Tasks
+      <header className="bg-blue-600 text-white p-4 flex items-center justify-between">
+        <span className="text-xl font-bold">Construction Tasks</span>
+        <button
+          className="bg-blue-800 hover:bg-blue-900 text-white text-xs px-3 py-1 rounded ml-4"
+          onClick={() => {
+            logout();
+            navigate("/login");
+          }}
+        >
+          Logout
+        </button>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center p-4">
         <div
@@ -130,7 +143,7 @@ const PlanPage: React.FC = () => {
             const rect = (e.target as HTMLDivElement).getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width;
             const y = (e.clientY - rect.top) / rect.height;
-            setPendingXY({ x, y });
+            setPendingXY({ x, y, clientX: e.clientX, clientY: e.clientY });
           }}
         >
           <img
@@ -236,11 +249,12 @@ const PlanPage: React.FC = () => {
                 }}
               />
               <div
-                className="absolute z-30 bg-white border rounded shadow-lg p-3 text-xs min-w-[180px] max-w-[220px]"
+                className="fixed z-30 bg-white border rounded shadow-lg p-3 text-xs min-w-[220px] max-w-[260px]"
                 style={{
-                  left: `${Math.round(pendingXY.x * 100)}%`,
-                  top: `${Math.round(pendingXY.y * 100)}%`,
-                  transform: "translate(-50%, -110%)",
+                  left: pendingXY.clientX + 10,
+                  top: pendingXY.clientY + 10,
+                  // prevent overflow
+                  maxWidth: 260,
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -287,14 +301,27 @@ const PlanPage: React.FC = () => {
             <ul>
               {tasks.map((task) => (
                 <li key={task.id} className="mb-2 border-b pb-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold">{task.title}</span>
-                    <button
-                      className="text-red-500 text-xs ml-2 px-2 py-1 rounded hover:bg-red-100"
-                      onClick={() => handleDeleteTask(task.id)}
-                    >
-                      Delete
-                    </button>
+                    <div className="flex gap-2">
+                      {!(editTask && editTask.id === task.id) && (
+                        <>
+                          <button
+                            className="text-blue-600 text-xs px-2 py-1 rounded hover:underline"
+                            onClick={() => setEditTask(task)}
+                            disabled={!!editTask && editTask.id === task.id}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="text-red-500 text-xs px-2 py-1 rounded hover:bg-red-100"
+                            onClick={() => handleDeleteTask(task.id)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <ChecklistEditor
                     checklist={task.checklist}
